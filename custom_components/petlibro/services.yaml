@@ -262,3 +262,35 @@ toggle_today_feeding_schedule:
       required: true
       selector:
         boolean:
+
+debug_api_probe:
+  name: Debug API Probe
+  description: >
+    TEMPORARY. POST an arbitrary Petlibro API path using the integration's own session and return the raw JSON.
+  fields:
+    device_id:
+      name: Device
+      description: The feeder to target.
+      required: true
+      selector:
+        device:
+          integration: petlibro
+    path:
+      name: Path
+      description: API path, e.g. /data/event/deviceEventsV2
+      required: true
+      selector:
+        text:
+    payload:
+      name: Payload
+      description: Extra JSON body fields.
+      required: false
+      selector:
+        object:
+    add_serial:
+      name: Add serial
+      description: Add deviceSn and id to the payload.
+      required: false
+      default: true
+      selector:
+        boolean:
