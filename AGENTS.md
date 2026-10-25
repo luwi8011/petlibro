@@ -33,3 +33,12 @@ Rules
   The reported 1-2 minute stall on 3.1.48 (go2rtc fork PR #1, ack_hole_timeout) only matters for long streams; snapshots are short.
 - There is no camera-only HA add-on; Petlibro Local add-on (tannerln7/Petlibro-Home-Assistant) also takes over feeder control: do not use.
 - Goal flow: successful feeding -> both persons away -> wait for next motion alert (Poppy at bowl) -> grab frame -> notify both phones.
+
+## HA setup done (2026-10-25)
+- go2rtc runs as Portainer stack `go2rtc-petlibro` on 192.168.0.60 (stack file: local/portainer-stack.yml, gitignored; feeder 192.168.0.5 reserved on router).
+- HA: Generic Camera `camera.poppy_feeder` (rtsp://192.168.0.60:8554/petlibro_feeder), dashboard /poppy-feeder, automation
+  `automation.poppy_feeder_motion_snapshot` (event.kitchen_granary_smart_camera_feeder_motion + both persons not home ->
+  camera.snapshot to /media/poppy_feeder/ -> notify both phones with attachment; tap opens /?more-info-entity-id=camera.poppy_feeder).
+- Tap target: plain dashboard path did not work from the notification; the more-info URL did (user-verified on iPhone, live video popup, play tap needed).
+- Not verified end to end: the automation only fires when both people are away. Snapshots take ~5 s; alerts arrive up to ~1 min after motion (polling).
+- Existing automation.poppy_feeder_alerts untouched.
