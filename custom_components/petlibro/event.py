@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
 from .entity import PetLibroEntity, PetLibroEntityDescription, _DeviceT
+from .devices.event import EVENT_UPDATE
 from .hub import PetLibroHub
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,29 +51,27 @@ class PetLibroDetectionEventEntity(PetLibroEntity[_DeviceT], EventEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        detections = self._detections()
-        if detections:
-            self._last_timestamp = detections[0]["timestamp"]
-        elif self.device._data.get("messages") is not None:
-            self._last_timestamp = 0
+        # Existing history counts as seen: seed from data loaded before setup.
+        if self.device._data.get("messages") is not None:
+            detections = self._detections()
+            self._last_timestamp = detections[0]["timestamp"] if detections else 0
+        # PetLibroEntity entities update on the device's own update signal.
+        self.async_on_remove(self.device.on(EVENT_UPDATE, self._fire_new_detections))
 
     @callback
-    def _handle_coordinator_update(self) -> None:
-        detections = self._detections()
+    def _fire_new_detections(self) -> None:
         if self._last_timestamp is None:
-            # First data arrives after startup: treat existing history as seen.
             if self.device._data.get("messages") is not None:
+                detections = self._detections()
                 self._last_timestamp = detections[0]["timestamp"] if detections else 0
-            super()._handle_coordinator_update()
             return
-        new = [d for d in detections if d["timestamp"] > self._last_timestamp]
+        new = [d for d in self._detections() if d["timestamp"] > self._last_timestamp]
         for detection in sorted(new, key=lambda d: d["timestamp"]):
+            self._last_timestamp = detection["timestamp"]
             self._trigger_event(
                 self.entity_description.event_type,
                 {"message_id": detection["id"], "detected_at": detection["time"].isoformat()},
             )
-            self._last_timestamp = detection["timestamp"]
-        super()._handle_coordinator_update()
 
 
 DEVICE_EVENT_MAP: dict[type, list[PetLibroEventEntityDescription]] = {
