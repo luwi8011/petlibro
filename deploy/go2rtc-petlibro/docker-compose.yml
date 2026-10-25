@@ -1,0 +1,35 @@
+# Portainer stack: go2rtc build with PLAF203 camera support (tannerln7/go2rtc v1.9.14-petlibro.3).
+# Environment variables (set in the Portainer stack's "Environment variables" box):
+#   CAMERA_UID   20-character camera ID of the feeder (required)
+#   FEEDER_IP    LAN address of the feeder (required; reserve it in your router)
+services:
+  go2rtc-petlibro:
+    image: alpine:3.20
+    container_name: go2rtc-petlibro
+    # Host networking: the camera talks to us over UDP on random ports and
+    # replies to the address that sent the request; NAT breaks that.
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      CAMERA_UID: ${CAMERA_UID:?set CAMERA_UID}
+      FEEDER_IP: ${FEEDER_IP:?set FEEDER_IP}
+      RELEASE: v1.9.14-petlibro.3
+      SHA256: 15c9ef0cff99f5857ff602e9dee40ed59212d9e5af351dbac8596a80aa8e4ddb
+    volumes:
+      - go2rtc-bin:/opt/go2rtc
+    command:
+      - sh
+      - -ec
+      - |
+        BIN=/opt/go2rtc/go2rtc-$$RELEASE
+        if [ ! -x "$$BIN" ]; then
+          wget -q -O "$$BIN.tmp" "https://github.com/tannerln7/go2rtc/releases/download/$$RELEASE/petlibro-go2rtc_linux_amd64"
+          echo "$$SHA256  $$BIN.tmp" | sha256sum -c -
+          chmod +x "$$BIN.tmp"
+          mv "$$BIN.tmp" "$$BIN"
+        fi
+        printf 'api:\n  listen: ":1984"\nrtsp:\n  listen: ":8554"\nwebrtc:\n  listen: ":8555"\nstreams:\n  petlibro_feeder: petlibro://%s?uid=%s&quality=hd\n' "$$FEEDER_IP" "$$CAMERA_UID" > /tmp/go2rtc.yaml
+        exec "$$BIN" -config /tmp/go2rtc.yaml
+
+volumes:
+  go2rtc-bin:
