@@ -2,3 +2,9 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+
+# local secrets / captures
+.env
+.env.*
+captures/
+core.*
