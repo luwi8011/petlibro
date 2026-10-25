@@ -22,3 +22,14 @@ Rules
   (on for 2 min after an alert), `event.py` event entities (fire once per new message, seeded at startup).
 - `petlibro.debug_api_probe` (GET/POST any path, returns raw JSON) is temporary; remove before release.
 - Remaining: automation (ask first), camera via TUTK/go2rtc (unproven; Kalay handshake unknown).
+
+## Camera (2026-10-25)
+- Firmware: update.granary_smart_camera_feeder_firmware shows 3.1.48 installed = latest, so no newer firmware exists.
+- Stream works LAN-only via tannerln7/go2rtc release v1.9.14-petlibro.3 (binary `petlibro-go2rtc_linux_amd64`, sha256 verified).
+  Stream URL: `petlibro://<feeder-ip>?uid=<camera_id>&quality=hd`; feeder = 192.168.0.5 (MAC 6c:d5:52:5f:18:88), UDP 32761.
+- Test install in the dev container: `/config/.local/share/petlibro-go2rtc/` (go2rtc + go2rtc.yaml with UID, chmod 600, not in git;
+  UID also in `.env` as CAMERA_UID). Start: `./go2rtc -config ./go2rtc.yaml`. Not persistent across container restarts.
+- Verified: ffmpeg grab of `rtsp://127.0.0.1:8554/petlibro_feeder` gave a 1920x1080 frame in ~7 s cold, 3 grabs in a row OK.
+  The reported 1-2 minute stall on 3.1.48 (go2rtc fork PR #1, ack_hole_timeout) only matters for long streams; snapshots are short.
+- There is no camera-only HA add-on; Petlibro Local add-on (tannerln7/Petlibro-Home-Assistant) also takes over feeder control: do not use.
+- Goal flow: successful feeding -> both persons away -> wait for next motion alert (Poppy at bowl) -> grab frame -> notify both phones.
