@@ -20,7 +20,7 @@ Rules
 - The Petlibro cloud rate-limits alerts (roughly one per few minutes), so detections are not instantaneous per-motion.
 - Implemented: `api.device_messages`, `GranarySmartCameraFeeder.motion_detections/sound_detections`, binary sensors
   (on for 2 min after an alert), `event.py` event entities (fire once per new message, seeded at startup).
-- `petlibro.debug_api_probe` (GET/POST any path, returns raw JSON) is temporary; remove before release.
+- `petlibro.debug_api_probe` (temporary GET/POST probe) was removed on 2026-10-25; see git history (commit 1a32f4a..ed16d80) if it is needed again.
 - Remaining: automation (ask first), camera via TUTK/go2rtc (unproven; Kalay handshake unknown).
 
 ## Camera (2026-10-25)

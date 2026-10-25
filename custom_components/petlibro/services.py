@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 
@@ -20,7 +20,6 @@ SERVICE_SKIP_FEEDING_PLAN       = "skip_feeding_plan"
 SERVICE_DELETE_FEEDING_PLAN     = "delete_feeding_plan"
 SERVICE_TOGGLE_FEEDING_SCHEDULE = "toggle_feeding_schedule"
 SERVICE_TOGGLE_TODAY_SCHEDULE   = "toggle_today_feeding_schedule"
-SERVICE_DEBUG_API_PROBE         = "debug_api_probe"
 
 # Field keys
 _DEVICE_ID = "device_id"
@@ -219,40 +218,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     hass.services.async_register(DOMAIN, SERVICE_TOGGLE_TODAY_SCHEDULE, handle_toggle_today_schedule)
 
-    # ------------------------------------------------------------------
-    # debug_api_probe  (temporary: POST an arbitrary endpoint on the
-    # integration's own session and return the raw JSON; avoids a second
-    # login, which Petlibro would treat as a session takeover)
-    # ------------------------------------------------------------------
-    async def handle_debug_api_probe(call: ServiceCall) -> dict[str, Any]:
-        device = _get_feeder(hass, call.data[_DEVICE_ID])
-        path: str = call.data["path"]
-        if not path.startswith("/") or "//" in path or ".." in path:
-            raise ServiceValidationError("path must be an absolute API path like /data/event/deviceEventsV2")
-        payload: dict[str, Any] = dict(call.data.get("payload") or {})
-        if call.data.get("add_serial", True):
-            payload.setdefault("deviceSn", device.serial)
-            payload.setdefault("id", device.serial)
-        method = str(call.data.get("method", "POST")).upper()
-        if method not in ("GET", "POST"):
-            raise ServiceValidationError("method must be GET or POST")
-        try:
-            if method == "GET":
-                result = await device.api.session.request("GET", path, params={k: str(v) for k, v in payload.items()})
-            else:
-                result = await device.api.session.request("POST", path, json=payload)
-        except Exception as err:  # surface API errors (e.g. 404 / code != 0) to the caller
-            result = {"error": str(err)}
-        _LOGGER.debug("debug_api_probe %s %s -> %s", path, payload, result)
-        return {"path": path, "payload": payload, "result": result}
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_DEBUG_API_PROBE,
-        handle_debug_api_probe,
-        supports_response=SupportsResponse.ONLY,
-    )
-
     _LOGGER.debug("PETLIBRO feeding plan services registered.")
 
 
@@ -266,7 +231,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_DELETE_FEEDING_PLAN,
         SERVICE_TOGGLE_FEEDING_SCHEDULE,
         SERVICE_TOGGLE_TODAY_SCHEDULE,
-        SERVICE_DEBUG_API_PROBE,
     ):
         hass.services.async_remove(DOMAIN, service)
     _LOGGER.debug("PETLIBRO feeding plan services removed.")
