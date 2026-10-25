@@ -294,3 +294,13 @@ debug_api_probe:
       default: true
       selector:
         boolean:
+    method:
+      name: Method
+      description: GET or POST.
+      required: false
+      default: POST
+      selector:
+        select:
+          options:
+            - GET
+            - POST

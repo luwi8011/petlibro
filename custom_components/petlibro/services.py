@@ -233,8 +233,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if call.data.get("add_serial", True):
             payload.setdefault("deviceSn", device.serial)
             payload.setdefault("id", device.serial)
+        method = str(call.data.get("method", "POST")).upper()
+        if method not in ("GET", "POST"):
+            raise ServiceValidationError("method must be GET or POST")
         try:
-            result = await device.api.session.request("POST", path, json=payload)
+            if method == "GET":
+                result = await device.api.session.request("GET", path, params={k: str(v) for k, v in payload.items()})
+            else:
+                result = await device.api.session.request("POST", path, json=payload)
         except Exception as err:  # surface API errors (e.g. 404 / code != 0) to the caller
             result = {"error": str(err)}
         _LOGGER.debug("debug_api_probe %s %s -> %s", path, payload, result)
