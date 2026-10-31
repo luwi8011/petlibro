@@ -27,3 +27,7 @@ Rules
 - HA `camera.snapshot` times out at 10 s and fails ~1 in 3 cold grabs; a failed grab leaves a 0-byte file and a
   half-started stream can give a 640x360 frame. Verify file size before using a snapshot.
 - iOS notification attachments: do not add a query string to `/media/local/...` URLs (404 in the app).
+- HA 2026.10 snapshots of Generic Cameras go through HA's built-in go2rtc (`ffmpeg:` + stream source). HA caches go2rtc's
+  `/api/schemes` once at startup; go2rtc opens its API before the ffmpeg module registers, so the cache can miss `ffmpeg`
+  and every snapshot/live view fails with "Stream source is not supported by go2rtc" until go2rtc is reloaded
+  (home-assistant/core#186806, fix PR #186969). Reloading the go2rtc config entry clears it.
